@@ -26,7 +26,6 @@ HANDLE hThread;
 list<pair <string, string>> Chatting;
 char NickName[50];
 
-
 DWORD WINAPI recvThread(LPVOID lpParam) {
 	char buffer[1024];
 	int recv_size;
@@ -43,7 +42,7 @@ DWORD WINAPI recvThread(LPVOID lpParam) {
 
 				WaitForSingleObject(hConsoleMutex, INFINITE);
 
-				if (Chatting.size() > 27)
+				if (Chatting.size() > 26)
 				{
 					Chatting.pop_front();
 				}
@@ -71,7 +70,7 @@ DWORD WINAPI recvThread(LPVOID lpParam) {
 				stCreateOther* pMsg = (stCreateOther*)(buffer + 3);
 				WaitForSingleObject(hConsoleMutex, INFINITE);
 
-				if (Chatting.size() > 27)
+				if (Chatting.size() > 26)
 				{
 					Chatting.pop_front();
 				}
@@ -81,7 +80,35 @@ DWORD WINAPI recvThread(LPVOID lpParam) {
 
 				for (auto& entry : Chatting)
 				{
-					printf("%s: %s", entry.first.c_str(), entry.second.c_str());
+					printf("%s%s", entry.first.c_str(), entry.second.c_str());
+				}
+
+				// 입력 프롬프트의 위치를 고정합니다.
+				CScreenBuffer::GetInstance()->cs_MoveCursor(0, 28);
+				printf("----------------------------------------------------");
+				CScreenBuffer::GetInstance()->cs_MoveCursor(0, 29);
+				printf("%s: ", NickName);
+				fflush(stdout);
+
+				ReleaseMutex(hConsoleMutex); // 뮤텍스 해제
+				break;
+			}
+			case dfPACKET_DELETE:
+			{
+				stDelete* pMsg = (stDelete*)(buffer + 3);
+				WaitForSingleObject(hConsoleMutex, INFINITE);
+
+				if (Chatting.size() > 26)
+				{
+					Chatting.pop_front();
+				}
+				Chatting.push_back(make_pair(string(pMsg->NickName), "님이 접속을 종료하셨습니다.\n"));
+
+				system("cls");
+
+				for (auto& entry : Chatting)
+				{
+					printf("%s%s", entry.first.c_str(), entry.second.c_str());
 				}
 
 				// 입력 프롬프트의 위치를 고정합니다.
@@ -130,17 +157,17 @@ int main()
 	if (sock == INVALID_SOCKET)
 		return 1;
 
-	char ServerIpBuf[16];
+	char ServerIpBuf[17];
 	cout << "접속할 IP 주소를 입력하세요 : ";
-	fgets(ServerIpBuf, 16, stdin);
+	fgets(ServerIpBuf, 17, stdin);
 	ServerIpBuf[strlen(ServerIpBuf) - 1] = '\0';
-
-	CScreenBuffer::GetInstance()->cs_Initial();
 
 	// 닉네임 입력
 	cout << endl << "사용할 닉네임을 입력하세요 : ";
 	fgets(NickName, 50, stdin);
 	NickName[strlen(NickName) - 1] = '\0';
+
+	CScreenBuffer::GetInstance()->cs_Initial();
 
 	// connect()
 	SOCKADDR_IN serveraddr;
